@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
+import 'models/habit.dart';
+import 'data/habit_repository.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(HabitAdapter());
+  await Hive.openBox<Habit>(HabitRepository.boxName);
+
   runApp(const HabitForgeApp());
 }
 
