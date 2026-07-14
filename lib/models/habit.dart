@@ -2,15 +2,6 @@ import 'package:hive/hive.dart';
 
 part 'habit.g.dart';
 
-/// Representa um habito rastreavel.
-///
-/// [weekdays] usa a convencao do DateTime.weekday (1 = segunda ... 7 = domingo),
-/// guardado como Set pra facilitar checagem de "hoje e dia agendado?".
-///
-/// [completedDates] guarda as datas (normalizadas para meia-noite, sem hora)
-/// em que o habito foi marcado como concluido. Formato ISO8601 (string) porque
-/// Hive lida melhor com tipos simples do que com DateTime em alguns cenarios
-/// de migracao futura -- decisao meio defensiva, talvez exagero, mas evita dor de cabeca.
 @HiveType(typeId: 0)
 class Habit extends HiveObject {
   @HiveField(0)
@@ -56,4 +47,35 @@ class Habit extends HiveObject {
     this.colorValue = 0xFF2F6F4F,
   })  : completedDates = completedDates ?? [],
         createdAt = createdAt ?? DateTime.now();
+
+  bool get isDoneToday {
+    final todayKey = _dateKey(DateTime.now());
+    return completedDates.contains(todayKey);
+  }
+
+  static String _dateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  // TODO(commit 4): essa logica de streak e ingenua de proposito por
+  // enquanto -- so incrementa um contador, sem considerar dias da semana
+  // agendados nem furos reais. Vai ser substituida por um StreakService
+  // com regras direito (grace period, virada de mes, etc).
+  void markDoneToday() {
+    final key = _dateKey(DateTime.now());
+    if (!completedDates.contains(key)) {
+      completedDates.add(key);
+      currentStreak += 1;
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+    }
+  }
+
+  void unmarkDoneToday() {
+    final key = _dateKey(DateTime.now());
+    if (completedDates.remove(key)) {
+      if (currentStreak > 0) currentStreak -= 1;
+    }
+  }
 }

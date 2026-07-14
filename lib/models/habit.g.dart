@@ -1,7 +1,4 @@
 // GENERATED CODE - manually mirrored from build_runner output.
-// Nao editar style-guide daqui, mas se mudar campos em habit.dart,
-// regerar com: flutter pub run build_runner build --delete-conflicting-outputs
-
 part of 'habit.dart';
 
 class HabitAdapter extends TypeAdapter<Habit> {
