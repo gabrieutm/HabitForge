@@ -1,4 +1,6 @@
 import 'package:hive/hive.dart';
+import '../services/streak_service.dart';
+import '../utils/date_utils.dart';
 
 part 'habit.g.dart';
 
@@ -48,34 +50,27 @@ class Habit extends HiveObject {
   })  : completedDates = completedDates ?? [],
         createdAt = createdAt ?? DateTime.now();
 
-  bool get isDoneToday {
-    final todayKey = _dateKey(DateTime.now());
-    return completedDates.contains(todayKey);
-  }
+  bool get isDoneToday => completedDates.contains(DateUtils2.toKey(DateTime.now()));
 
-  static String _dateKey(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
+  bool isDoneOn(DateTime date) => completedDates.contains(DateUtils2.toKey(date));
 
-  // TODO(commit 4): essa logica de streak e ingenua de proposito por
-  // enquanto -- so incrementa um contador, sem considerar dias da semana
-  // agendados nem furos reais. Vai ser substituida por um StreakService
-  // com regras direito (grace period, virada de mes, etc).
-  void markDoneToday() {
-    final key = _dateKey(DateTime.now());
-    if (!completedDates.contains(key)) {
+  /// Marca/desmarca um dia especifico como concluido e recalcula a streak
+  /// usando o StreakService. Substitui a logica ingenua do commit anterior.
+  void toggleDate(DateTime date) {
+    final key = DateUtils2.toKey(date);
+    if (completedDates.contains(key)) {
+      completedDates.remove(key);
+    } else {
       completedDates.add(key);
-      currentStreak += 1;
-      if (currentStreak > bestStreak) {
-        bestStreak = currentStreak;
-      }
     }
+    _recalculateStreak();
   }
 
-  void unmarkDoneToday() {
-    final key = _dateKey(DateTime.now());
-    if (completedDates.remove(key)) {
-      if (currentStreak > 0) currentStreak -= 1;
+  void _recalculateStreak() {
+    final result = StreakService.calculate(this);
+    currentStreak = result.current;
+    if (result.best > bestStreak) {
+      bestStreak = result.best;
     }
   }
 }

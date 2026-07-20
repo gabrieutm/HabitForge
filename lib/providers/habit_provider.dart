@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../data/habit_repository.dart';
 import '../models/habit.dart';
+import '../services/streak_service.dart';
 
 class HabitProvider extends ChangeNotifier {
   final HabitRepository _repository = HabitRepository();
@@ -38,13 +39,53 @@ class HabitProvider extends ChangeNotifier {
     _load();
   }
 
-  Future<void> toggleToday(Habit habit) async {
-    if (habit.isDoneToday) {
-      habit.unmarkDoneToday();
-    } else {
-      habit.markDoneToday();
-    }
-    await habit.save(); // HiveObject.save() persiste direto
+  Future<void> updateHabit(
+    Habit habit, {
+    required String name,
+    required Set<int> weekdays,
+    required int reminderHour,
+    required int reminderMinute,
+    required int colorValue,
+  }) async {
+    habit.name = name;
+    habit.weekdays = weekdays;
+    habit.reminderHour = reminderHour;
+    habit.reminderMinute = reminderMinute;
+    habit.colorValue = colorValue;
+    await habit.save();
     _load();
+  }
+
+  Future<void> deleteHabit(Habit habit) async {
+    await _repository.delete(habit.id);
+    _load();
+  }
+
+  Future<void> toggleToday(Habit habit) async {
+    habit.toggleDate(DateTime.now());
+    await habit.save();
+    _load();
+  }
+
+  /// Marca/desmarca uma data especifica (usado na tela de detalhe pra
+  /// completar retroativamente dentro do grace period).
+  Future<void> toggleDate(Habit habit, DateTime date) async {
+    habit.toggleDate(date);
+    await habit.save();
+    _load();
+  }
+
+  /// Exposto pra tela de detalhe conseguir avisar o usuario se uma data
+  /// ja passou do grace period (nao deveria deixar marcar mais).
+  bool canToggle(Habit habit, DateTime date) {
+    final today = DateTime.now();
+    if (date.isAfter(DateTime(today.year, today.month, today.day))) {
+      return false; // nao deixa marcar o futuro
+    }
+    if (!habit.weekdays.contains(date.weekday)) {
+      return false; // dia nao agendado pra esse habito
+    }
+    return StreakService.isWithinGracePeriod(habit, date, today) ||
+        habit.isDoneOn(date); // sempre pode desmarcar algo ja marcado
   }
 }

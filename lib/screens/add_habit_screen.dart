@@ -1,19 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/habit.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/weekday_selector.dart';
 
 class AddHabitScreen extends StatefulWidget {
-  const AddHabitScreen({super.key});
+  final Habit? habitToEdit;
+
+  const AddHabitScreen({super.key, this.habitToEdit});
+
+  bool get isEditing => habitToEdit != null;
 
   @override
   State<AddHabitScreen> createState() => _AddHabitScreenState();
 }
 
 class _AddHabitScreenState extends State<AddHabitScreen> {
-  final _nameController = TextEditingController();
-  Set<int> _weekdays = {1, 2, 3, 4, 5, 6, 7};
-  TimeOfDay _time = const TimeOfDay(hour: 9, minute: 0);
+  late final TextEditingController _nameController;
+  late Set<int> _weekdays;
+  late TimeOfDay _time;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.habitToEdit;
+    _nameController = TextEditingController(text: existing?.name ?? '');
+    _weekdays = existing != null ? Set<int>.from(existing.weekdays) : {1, 2, 3, 4, 5, 6, 7};
+    _time = existing != null
+        ? TimeOfDay(hour: existing.reminderHour, minute: existing.reminderMinute)
+        : const TimeOfDay(hour: 9, minute: 0);
+  }
 
   @override
   void dispose() {
@@ -37,12 +53,24 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       return;
     }
 
-    context.read<HabitProvider>().addHabit(
-          name: name,
-          weekdays: _weekdays,
-          reminderHour: _time.hour,
-          reminderMinute: _time.minute,
-        );
+    final provider = context.read<HabitProvider>();
+    if (widget.isEditing) {
+      provider.updateHabit(
+        widget.habitToEdit!,
+        name: name,
+        weekdays: _weekdays,
+        reminderHour: _time.hour,
+        reminderMinute: _time.minute,
+        colorValue: widget.habitToEdit!.colorValue,
+      );
+    } else {
+      provider.addHabit(
+        name: name,
+        weekdays: _weekdays,
+        reminderHour: _time.hour,
+        reminderMinute: _time.minute,
+      );
+    }
 
     Navigator.of(context).pop();
   }
@@ -50,7 +78,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Novo habito')),
+      appBar: AppBar(title: Text(widget.isEditing ? 'Editar habito' : 'Novo habito')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -82,7 +110,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: _save,
-                child: const Text('Salvar habito'),
+                child: Text(widget.isEditing ? 'Salvar alteracoes' : 'Salvar habito'),
               ),
             ),
           ],

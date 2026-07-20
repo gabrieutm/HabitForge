@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/habit_card.dart';
 import 'add_habit_screen.dart';
+import 'habit_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,9 @@ class HomeScreen extends StatelessWidget {
                 return HabitCard(
                   habit: habit,
                   onToggle: () => context.read<HabitProvider>().toggleToday(habit),
+                  onOpen: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit)),
+                  ),
                 );
               },
             ),

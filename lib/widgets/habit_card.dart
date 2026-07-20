@@ -4,11 +4,13 @@ import '../models/habit.dart';
 class HabitCard extends StatelessWidget {
   final Habit habit;
   final VoidCallback onToggle;
+  final VoidCallback onOpen;
 
   const HabitCard({
     super.key,
     required this.habit,
     required this.onToggle,
+    required this.onOpen,
   });
 
   @override
@@ -16,12 +18,14 @@ class HabitCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ListTile(
+        onTap: onOpen,
         leading: Checkbox(
           value: habit.isDoneToday,
           onChanged: (_) => onToggle(),
         ),
         title: Text(habit.name),
-        subtitle: Text('🔥 ${habit.currentStreak} dias seguidos'),
+        subtitle: Text('🔥 ${habit.currentStreak} (recorde: ${habit.bestStreak})'),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }
