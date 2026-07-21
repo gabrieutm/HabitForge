@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 import 'models/habit.dart';
 import 'data/habit_repository.dart';
 import 'providers/habit_provider.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,9 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(HabitAdapter());
   await Hive.openBox<Habit>(HabitRepository.boxName);
+
+  await NotificationService.instance.init();
+  await NotificationService.instance.requestPermissions();
 
   runApp(const HabitForgeApp());
 }

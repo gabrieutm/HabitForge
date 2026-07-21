@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../data/habit_repository.dart';
 import '../models/habit.dart';
 import '../services/streak_service.dart';
+import '../services/notification_service.dart';
 
 class HabitProvider extends ChangeNotifier {
   final HabitRepository _repository = HabitRepository();
@@ -36,6 +37,16 @@ class HabitProvider extends ChangeNotifier {
       colorValue: colorValue,
     );
     await _repository.save(habit);
+
+    // Se der erro de plataforma (ex: rodando em ambiente sem plugin nativo
+    // configurado direito), nao queremos que isso quebre o salvamento do
+    // habito -- por isso o try/catch aqui. Aprendi isso na marra testando.
+    try {
+      await NotificationService.instance.scheduleForHabit(habit);
+    } catch (e) {
+      debugPrint('Falha ao agendar notificacao: $e');
+    }
+
     _load();
   }
 
@@ -53,10 +64,22 @@ class HabitProvider extends ChangeNotifier {
     habit.reminderMinute = reminderMinute;
     habit.colorValue = colorValue;
     await habit.save();
+
+    try {
+      await NotificationService.instance.scheduleForHabit(habit);
+    } catch (e) {
+      debugPrint('Falha ao reagendar notificacao: $e');
+    }
+
     _load();
   }
 
   Future<void> deleteHabit(Habit habit) async {
+    try {
+      await NotificationService.instance.cancelForHabit(habit);
+    } catch (e) {
+      debugPrint('Falha ao cancelar notificacao: $e');
+    }
     await _repository.delete(habit.id);
     _load();
   }
@@ -67,25 +90,20 @@ class HabitProvider extends ChangeNotifier {
     _load();
   }
 
-  /// Marca/desmarca uma data especifica (usado na tela de detalhe pra
-  /// completar retroativamente dentro do grace period).
   Future<void> toggleDate(Habit habit, DateTime date) async {
     habit.toggleDate(date);
     await habit.save();
     _load();
   }
 
-  /// Exposto pra tela de detalhe conseguir avisar o usuario se uma data
-  /// ja passou do grace period (nao deveria deixar marcar mais).
   bool canToggle(Habit habit, DateTime date) {
     final today = DateTime.now();
     if (date.isAfter(DateTime(today.year, today.month, today.day))) {
-      return false; // nao deixa marcar o futuro
+      return false;
     }
     if (!habit.weekdays.contains(date.weekday)) {
-      return false; // dia nao agendado pra esse habito
+      return false;
     }
-    return StreakService.isWithinGracePeriod(habit, date, today) ||
-        habit.isDoneOn(date); // sempre pode desmarcar algo ja marcado
+    return StreakService.isWithinGracePeriod(habit, date, today) || habit.isDoneOn(date);
   }
 }
