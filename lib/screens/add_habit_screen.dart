@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/habit.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/weekday_selector.dart';
+import '../widgets/color_picker.dart';
+import '../theme/app_colors.dart';
 
 class AddHabitScreen extends StatefulWidget {
   final Habit? habitToEdit;
@@ -19,6 +21,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   late final TextEditingController _nameController;
   late Set<int> _weekdays;
   late TimeOfDay _time;
+  late int _colorValue;
 
   @override
   void initState() {
@@ -29,6 +32,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     _time = existing != null
         ? TimeOfDay(hour: existing.reminderHour, minute: existing.reminderMinute)
         : const TimeOfDay(hour: 9, minute: 0);
+    _colorValue = existing?.colorValue ?? AppColors.habitPalette.first.value;
   }
 
   @override
@@ -61,7 +65,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         weekdays: _weekdays,
         reminderHour: _time.hour,
         reminderMinute: _time.minute,
-        colorValue: widget.habitToEdit!.colorValue,
+        colorValue: _colorValue,
       );
     } else {
       provider.addHabit(
@@ -69,6 +73,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         weekdays: _weekdays,
         reminderHour: _time.hour,
         reminderMinute: _time.minute,
+        colorValue: _colorValue,
       );
     }
 
@@ -104,6 +109,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             OutlinedButton(
               onPressed: _pickTime,
               child: Text(_time.format(context)),
+            ),
+            const SizedBox(height: 24),
+            const Text('Cor'),
+            const SizedBox(height: 8),
+            ColorPickerRow(
+              selectedValue: _colorValue,
+              onChanged: (value) => setState(() => _colorValue = value),
             ),
             const Spacer(),
             SizedBox(

@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 import 'models/habit.dart';
 import 'data/habit_repository.dart';
 import 'providers/habit_provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/notification_service.dart';
 
 void main() async {
@@ -14,6 +15,7 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(HabitAdapter());
   await Hive.openBox<Habit>(HabitRepository.boxName);
+  await Hive.openBox('settings');
 
   await NotificationService.instance.init();
   await NotificationService.instance.requestPermissions();
@@ -26,13 +28,22 @@ class HabitForgeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => HabitProvider(),
-      child: MaterialApp(
-        title: 'HabitForge',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        home: const HomeScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => HabitProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'HabitForge',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: themeProvider.mode,
+            home: const HomeScreen(),
+          );
+        },
       ),
     );
   }
